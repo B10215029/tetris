@@ -5,7 +5,7 @@
 #include <time.h>
 #include <string.h>
 
-#define FPS 30
+#define FPS 60
 #define RANDER_WIDTH 100
 #define RENDER_HEIGHT 30
 #define BOARD_WIDTH 10
@@ -29,11 +29,155 @@ typedef struct {
 	Point data[4];
 } BlockInfo;
 
+typedef struct {
+	int size;
+	Point *data;
+} RotateConstraint;
+
 const ScreenPoint boardPosition = { 12, 3 };
 const ScreenPoint holdPosition = { 2, 3 };
 const ScreenPoint nextPosition = { 34, 3 };
 const ScreenPoint scorePosition = { 2, 20 };
 const Point blockInitPosition = { 4, 0 };
+const Point BlockData[7][4][4] = {
+	{
+		// []()[][]
+		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 2,  0 } },
+		//   []
+		//   ()
+		//   []
+		//   []
+		{ {  0, -1 },{ 0,  0 },{ 0,  1 },{ 0,  2 } },
+		//   ()
+		// [][][][]
+		{ { -1,  1 },{ 0,  1 },{ 1,  1 },{ 2,  1 } },
+		//     []
+		//   ()[]
+		//     []
+		//     []
+		{ {  1, -1 },{ 1,  0 },{ 1,  1 },{ 1,  2 } }
+	},
+	{
+		//   [][]
+		//   ()[]
+		{ {  0,  0 },{ 1,  0 },{ 0, -1 },{ 1, -1 } },
+		{ {  0,  0 },{ 1,  0 },{ 0, -1 },{ 1, -1 } },
+		{ {  0,  0 },{ 1,  0 },{ 0, -1 },{ 1, -1 } },
+		{ {  0,  0 },{ 1,  0 },{ 0, -1 },{ 1, -1 } }
+	},
+	{
+		//   []
+		// []()[]
+		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 0, -1 } },
+		//   []
+		//   ()[]
+		//   []
+		{ {  0,  1 },{ 0,  0 },{ 1,  0 },{ 0, -1 } },
+		// []()[]
+		//   []
+		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 0,  1 } },
+		//   []
+		// []()
+		//   []
+		{ { -1,  0 },{ 0,  0 },{ 0,  1 },{ 0, -1 } }
+	},
+	{
+		// [][]
+		//   ()[]
+		{ {  0,  0 },{ 1,  0 },{ 1, -1 },{ 0, -1 } },
+		//   []
+		// []()
+		// []
+		{ {  0, -1 },{ 0,  0 },{ 1,  0 },{ 1,  1 } },
+		// []()
+		//   [][]
+		{ {  0,  1 },{ 1,  1 },{ 1,  0 },{ 0,  0 } },
+		//     []
+		//   ()[]
+		//   []
+		{ {  1, -1 },{ 1,  0 },{ 0,  0 },{ 0,  1 } }
+	},
+	{
+		// []
+		// []()[]
+		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ -1, -1 } },
+		//   [][]
+		//   ()
+		//   []
+		{ {  0, -1 },{ 0,  0 },{ 0,  1 },{ 1, -1 } },
+		// []()[]
+		//     []
+		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 1,  1 } },
+		//   []
+		//   ()
+		// [][]
+		{ {  0, -1 },{ 0,  0 },{ 0,  1 },{ -1,  1 } }
+	},
+	{
+		//   [][]
+		// []()
+		{ { -1,  0 },{ 0,  0 },{ 0, -1 },{ 1, -1 } },
+		// []
+		// []()
+		//   []
+		{ { -1, -1 },{ -1,  0 },{ 0,  0 },{ 0,  1 } },
+		//   ()[]
+		// [][]
+		{ { -1,  1 },{ 0,  1 },{ 0,  0 },{ 1,  0 } },
+		//   []
+		//   ()[]
+		//     []
+		{ {  0, -1 },{ 0,  0 },{ 1,  0 },{ 1,  1 } }
+	},
+	{
+		//     []
+		// []()[]
+		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 1, -1 } },
+		//   []
+		//   ()
+		//   [][]
+		{ {  0, -1 },{ 0,  0 },{ 0,  1 },{ 1,  1 } },
+		// []()[]
+		// []
+		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ -1,  1 } },
+		// [][]
+		//   ()
+		//   []
+		{ {  0, -1 },{ 0,  0 },{ 0,  1 },{ -1, -1 } }
+	}
+};
+const Point rawRotateConstraintData[] = {
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 }
+};
+RotateConstraint rotateConstraint[7][4][2] = {
+	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
+	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
+	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
+	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
+	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
+	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
+	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } }
+};
+void InitRotateConstraint() {
+	int dataPointer = 0;
+	for (int i = 0; i < 7 * 4 * 2; i++) {
+		rotateConstraint[0][0][i].data = rawRotateConstraintData + dataPointer;
+		dataPointer += rotateConstraint[0][0][i].size;
+	}
+}
 
 char* renderBuffer;
 char board[BOARD_HEIGHT][BOARD_WIDTH];
@@ -42,54 +186,7 @@ int blockQueueIndex;
 BlockInfo block;
 int holdBlock;
 int score = 0;
-
-void BlockData(BlockInfo* block) {
-	// [][][][]
-	if (block->type == 0) {
-		int data[8] = { -1, 0, 0, 0, 1, 0, 2, 0 };
-		memcpy(block->data, data, sizeof(data));
-	}
-	//   [][]
-	//   [][]
-	else if (block->type == 1) {
-		int data[8] = { 0, 0, 1, 0, 0, -1, 1, -1 };
-		memcpy(block->data, data, sizeof(data));
-	}
-	//   []
-	// [][][]
-	else if (block->type == 2) {
-		int data[8] = { -1, 0, 0, 0, 1, 0, 0, -1 };
-		memcpy(block->data, data, sizeof(data));
-	}
-	// [][]
-	//   [][]
-	else if (block->type == 3) {
-		int data[8] = { 0, 0, 1, 0, -1, -1, 0, -1 };
-		memcpy(block->data, data, sizeof(data));
-	}
-	// []
-	// [][][]
-	else if (block->type == 4) {
-		int data[8] = { -1, 0, 0, 0, 1, 0, -1, -1 };
-		memcpy(block->data, data, sizeof(data));
-	}
-	//   [][]
-	// [][]
-	else if (block->type == 5) {
-		int data[8] = { -1, 0, 0, 0, 0, -1, 1, -1 };
-		memcpy(block->data, data, sizeof(data));
-	}
-	//     []
-	// [][][]
-	else if (block->type == 6) {
-		int data[8] = { -1, 0, 0, 0, 1, 0, 1, -1 };
-		memcpy(block->data, data, sizeof(data));
-	}
-	for (int i = 0; i < 4; i++) {
-		block->data[i].x += block->position.x;
-		block->data[i].y += block->position.y;
-	}
-}
+int gameOver = 0;
 
 inline int ScreenPointToPosition(ScreenPoint point) {
 	return point.x + point.y * RANDER_WIDTH;
@@ -123,14 +220,8 @@ void render() {
 	renderBuffer[ScreenPointToPosition(holdPosition)+6] = 'D';
 	if (holdBlock != -1) {
 		int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
-		BlockInfo block = {
-			.type = holdBlock,
-			.position = (Point) { 0, 0 },
-			.rotation = 0,
-		};
-		BlockData(&block);
 		for (int i = 0; i < 4; i++) {
-			ScreenPoint p = { block.data[i].x * 2, block.data[i].y };
+			ScreenPoint p = { BlockData[holdBlock][0][i].x * 2, BlockData[holdBlock][0][i].y };
 			renderBuffer[ScreenPointToPosition(holdPosition) + iconPosition + ScreenPointToPosition(p)] = -95;
 			renderBuffer[ScreenPointToPosition(holdPosition) + iconPosition + ScreenPointToPosition(p) + 1] = -67;
 		}
@@ -142,14 +233,8 @@ void render() {
 	renderBuffer[ScreenPointToPosition(nextPosition) + 6] = 'T';
 	int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
 	for (int blockI = 0; blockI < 5; blockI++) {
-		BlockInfo nextBlock = {
-			.type = blockQueue[blockQueueIndex + blockI],
-			.position = (Point) { 0, 0 },
-			.rotation = 0,
-		};
-		BlockData(&nextBlock);
 		for (int i = 0; i < 4; i++) {
-			ScreenPoint p = { nextBlock.data[i].x * 2, nextBlock.data[i].y };
+			ScreenPoint p = { BlockData[blockQueue[blockQueueIndex + blockI]][0][i].x * 2, BlockData[blockQueue[blockQueueIndex + blockI]][0][i].y };
 			renderBuffer[ScreenPointToPosition(nextPosition) + iconPosition + ScreenPointToPosition(p)] = -95;
 			renderBuffer[ScreenPointToPosition(nextPosition) + iconPosition + ScreenPointToPosition(p) + 1] = -67;
 		}
@@ -164,7 +249,7 @@ void render() {
 	itoa(score, scoreBuffer, 10);
 	memcpy(renderBuffer + (ScreenPointToPosition(scorePosition) + RANDER_WIDTH * 2), scoreBuffer, sizeof(char) * strlen(scoreBuffer));
 
-	renderBuffer[RANDER_WIDTH * RENDER_HEIGHT - 1] = 0; // EOF
+	strcpy(renderBuffer + RANDER_WIDTH * (RENDER_HEIGHT - 1), gameOver ? "Game Over" : "");
 	// print to screen
 	puts(renderBuffer);
 }
@@ -175,7 +260,12 @@ void UpdateBlockData(BlockInfo* block) {
 			board[block->data[i].y][block->data[i].x] = 0;
 		}
 	}
-	BlockData(block);
+	memcpy(block->data, BlockData[block->type][block->rotation], sizeof(block->data));
+	for (int i = 0; i < 4; i++) {
+		block->data[i].x += block->position.x;
+		block->data[i].y += block->position.y;
+	}
+	//BlockData(block);
 	for (int i = 0; i < 4; i++) {
 		if (block->data[i].y >= 0) {
 			board[block->data[i].y][block->data[i].x] = 1;
@@ -183,13 +273,50 @@ void UpdateBlockData(BlockInfo* block) {
 	}
 }
 
-// 0°f®É°w 1¶¶®É°w
-void RotateBlock(BlockInfo* block, int direction) {
-	block->rotation = (block->rotation + direction) % 4;
-}
-
 inline int IsInBound(Point point) {
 	return point.x >= 0 && point.x < BOARD_WIDTH && point.y < BOARD_HEIGHT;
+}
+
+int PositionCheck(Point *oldPosition, Point *newPosition) {
+	for (int i = 0; i < 4; i++) {
+		if (!IsInBound(newPosition[i])) {
+			return 0;
+		}
+		else if (newPosition[i].y < 0 || board[newPosition[i].y][newPosition[i].x] == 0) {
+			continue;
+		}
+		else {
+			int overlapSelf = 0;
+			for (int otherData = 0; otherData < 4; otherData++) {
+				if (newPosition[i].x == oldPosition[otherData].x && newPosition[i].y == oldPosition[otherData].y) {
+					overlapSelf = 1;
+					break;
+				}
+			}
+			if (!overlapSelf) {
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+// 0°f®É°w 1¶¶®É°w
+void RotateBlock(BlockInfo* block, int direction) {
+	int rotation = (block->rotation + (direction ? 1 : 3)) % 4;
+	for (int i = 0; i < rotateConstraint[block->type][block->rotation][direction].size; i++) {
+		Point newPosition[4];
+		for (int posi = 0; posi < 4; posi++) {
+			newPosition[posi].x = BlockData[block->type][rotation][posi].x + block->position.x + rotateConstraint[block->type][block->rotation][direction].data[i].x;
+			newPosition[posi].y = BlockData[block->type][rotation][posi].y + block->position.y + rotateConstraint[block->type][block->rotation][direction].data[i].y;
+		}
+		if (PositionCheck(block->data, newPosition)) {
+			block->position.x += rotateConstraint[block->type][block->rotation][direction].data[i].x;
+			block->position.y += rotateConstraint[block->type][block->rotation][direction].data[i].y;
+			block->rotation = rotation;
+			UpdateBlockData(block);
+		}
+	}
 }
 
 int MoveCheck(BlockInfo* block, Point vector) {
@@ -235,7 +362,17 @@ BlockInfo CreateBlock(int type) {
 		.position = blockInitPosition,
 		.rotation = 0,
 	};
-	BlockData(&newBlock);
+	memcpy(newBlock.data, BlockData[newBlock.type][newBlock.rotation], sizeof(newBlock.data));
+	for (int i = 0; i < 4; i++) {
+		newBlock.data[i].x += newBlock.position.x;
+		newBlock.data[i].y += newBlock.position.y;
+	}
+	//BlockData(&newBlock);
+	for (int i = 0; i < 4; i++) {
+		if (board[newBlock.data[i].y][newBlock.data[i].x] != 0) {
+			gameOver = 1;
+		}
+	}
 	UpdateBlockData(&newBlock);
 	return newBlock;
 }
@@ -317,68 +454,80 @@ void ResetData() {
 	block = NextBlock();
 	holdBlock = -1;
 	score = 0;
+	gameOver = 0;
 }
 
 int main(int argc, char* argv[]) {
 	renderBuffer = malloc(sizeof(char) * RANDER_WIDTH * RENDER_HEIGHT);
+	InitRotateConstraint();
 	ResetData();
 	double lastDropTime = ((double)clock()) / CLOCKS_PER_SEC;
 	double accumulationTime = ((double)clock()) / CLOCKS_PER_SEC;
+	int dirty = 1;
 	while (1) {
 		double currentTime = ((double)clock()) / CLOCKS_PER_SEC;
 		double biasTime = (1.0 / FPS) - (currentTime - accumulationTime);
 		while (kbhit()) {
 			char key = getch();
-			switch (key)
-			{
-			case 'z':
-				RotateBlock(&block, 0);
-				break;
-			case 'x':
-				RotateBlock(&block, 1);
-				break;
-			case 'c':
-				block = HoldBlock(&block);
-				break;
-			case ' ':
-				FallBlock(&block);
-				break;
-			case -32:
-				key = getch();
-				if (key == 72) {
-					RotateBlock(&block, 1);
-				}
-				else if (key == 80) {
-					DropBlock(&block);
-				}
-				else if (key == 75) {
-					Point direction = { -1, 0 };
-					if (MoveCheck(&block, direction)) {
-						block.position.x--;
-						UpdateBlockData(&block);
-					}
-				}
-				else if (key == 77) {
-					Point direction = { 1, 0 };
-					if (MoveCheck(&block, direction)) {
-						block.position.x++;
-						UpdateBlockData(&block);
-					}
-				}
-				break;
-			default:
-				break;
+			if (key == 27) {
+				ResetData();
 			}
+			else if (!gameOver) {
+				switch (key) {
+				case 'z':
+					RotateBlock(&block, 0);
+					break;
+				case 'x':
+					RotateBlock(&block, 1);
+					break;
+				case 'c':
+					block = HoldBlock(&block);
+					break;
+				case ' ':
+					FallBlock(&block);
+					break;
+				case -32:
+					key = getch();
+					if (key == 72) {
+						RotateBlock(&block, 1);
+					}
+					else if (key == 80) {
+						DropBlock(&block);
+					}
+					else if (key == 75) {
+						Point direction = { -1, 0 };
+						if (MoveCheck(&block, direction)) {
+							block.position.x--;
+							UpdateBlockData(&block);
+						}
+					}
+					else if (key == 77) {
+						Point direction = { 1, 0 };
+						if (MoveCheck(&block, direction)) {
+							block.position.x++;
+							UpdateBlockData(&block);
+						}
+					}
+					break;
+				default:
+					break;
+				}
+			}
+			dirty = 1;
 		}
-		
-		if (currentTime - lastDropTime > DROP_TIME) {
+
+		if (!gameOver && (currentTime - lastDropTime > DROP_TIME)) {
 			if (DropBlock(&block)) {
 				block = NextBlock();
 				printf("%lf\n", currentTime - lastDropTime);
 			}
 			lastDropTime = currentTime;
+			dirty = 1;
 		}
-		render();
+		if (dirty) {
+			render();
+			dirty = 0;
+		}
 		accumulationTime = currentTime + biasTime;
 		double sleepTime = (1.0 / FPS) + biasTime;
 		sleepTime = sleepTime > 0 ? sleepTime : 0;
