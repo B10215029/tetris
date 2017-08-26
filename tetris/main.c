@@ -40,7 +40,7 @@ const ScreenPoint nextPosition = { 34, 3 };
 const ScreenPoint scorePosition = { 2, 20 };
 const Point blockInitPosition = { 4, 0 };
 const Point BlockData[7][4][4] = {
-	{
+	{// 0
 		// []()[][]
 		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 2,  0 } },
 		//   []
@@ -57,7 +57,7 @@ const Point BlockData[7][4][4] = {
 		//     []
 		{ {  1, -1 },{ 1,  0 },{ 1,  1 },{ 1,  2 } }
 	},
-	{
+	{// 1
 		//   [][]
 		//   ()[]
 		{ {  0,  0 },{ 1,  0 },{ 0, -1 },{ 1, -1 } },
@@ -65,7 +65,7 @@ const Point BlockData[7][4][4] = {
 		{ {  0,  0 },{ 1,  0 },{ 0, -1 },{ 1, -1 } },
 		{ {  0,  0 },{ 1,  0 },{ 0, -1 },{ 1, -1 } }
 	},
-	{
+	{// 2
 		//   []
 		// []()[]
 		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 0, -1 } },
@@ -81,23 +81,23 @@ const Point BlockData[7][4][4] = {
 		//   []
 		{ { -1,  0 },{ 0,  0 },{ 0,  1 },{ 0, -1 } }
 	},
-	{
+	{// 3
 		// [][]
 		//   ()[]
-		{ {  0,  0 },{ 1,  0 },{ 1, -1 },{ 0, -1 } },
+		{ {  0,  0 },{ 1,  0 },{ -1, -1 },{ 0, -1 } },
 		//   []
 		// []()
 		// []
-		{ {  0, -1 },{ 0,  0 },{ 1,  0 },{ 1,  1 } },
+		{ {  0, -1 },{ 0,  0 },{ -1,  0 },{ -1,  1 } },
 		// []()
 		//   [][]
-		{ {  0,  1 },{ 1,  1 },{ 1,  0 },{ 0,  0 } },
+		{ {  0,  1 },{ 1,  1 },{ -1,  0 },{ 0,  0 } },
 		//     []
 		//   ()[]
 		//   []
 		{ {  1, -1 },{ 1,  0 },{ 0,  0 },{ 0,  1 } }
 	},
-	{
+	{// 4
 		// []
 		// []()[]
 		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ -1, -1 } },
@@ -113,7 +113,7 @@ const Point BlockData[7][4][4] = {
 		// [][]
 		{ {  0, -1 },{ 0,  0 },{ 0,  1 },{ -1,  1 } }
 	},
-	{
+	{// 5
 		//   [][]
 		// []()
 		{ { -1,  0 },{ 0,  0 },{ 0, -1 },{ 1, -1 } },
@@ -129,7 +129,7 @@ const Point BlockData[7][4][4] = {
 		//     []
 		{ {  0, -1 },{ 0,  0 },{ 1,  0 },{ 1,  1 } }
 	},
-	{
+	{// 6
 		//     []
 		// []()[]
 		{ { -1,  0 },{ 0,  0 },{ 1,  0 },{ 1, -1 } },
@@ -147,25 +147,45 @@ const Point BlockData[7][4][4] = {
 	}
 };
 const Point rawRotateConstraintData[] = {
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 },
-	{ 0, 0 },{ 0, 0 },{ 0, 0 },{ 0, 0 }
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ -1, 0 },{ -2, 0 },{ 1, 0 },{ 0, 0 },{ -1, 0 },{ -2, 0 },{ 1, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ -1, 0 },{ 1, 0 },{ 2, 0 },{ 0, 0 },{ -1, 0 },{ 1, 0 },{ 2, 0 },
+
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+
+	{ 0, 0 },{ 1, 2 },{ 0, 0 },{ -1, 2 },
+	{ 0, 0 },{ 1, 0 },{ 1, 1 },{ 0, 0 },{ 1, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ -1, 0 },{ 0, 0 },{ -1, 0 },{ -1, 1 },
+
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 },
+	{ 0, 0 },{ 0, 0 }
 };
 RotateConstraint rotateConstraint[7][4][2] = {
+	{ { { 1 },{ 1 } },{ { 4 },{ 4 } },{ { 1 },{ 1 } },{ { 4 },{ 4 } } },
 	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
-	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
-	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
+	{ { { 2 },{ 2 } },{ { 3 },{ 2 } },{ { 1 },{ 1 } },{ { 2 },{ 3 } } },
 	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
 	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
 	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
@@ -204,20 +224,32 @@ void render() {
 		for (int y = 0; y < BOARD_HEIGHT; y++) {
 			ScreenPoint p = { x * 2, y };
 			if (board[y][x] == 0) {
-				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = -95;
-				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = -68;
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 188;
 			}
 			else {
-				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = -95;
-				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = -67;
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 189;
 			}
 		}
 	}
+	Point shadowPosition[4];
+	memcpy(shadowPosition, block.data, sizeof(shadowPosition));
+	while (PositionCheck(block.data, shadowPosition)) {
+		for (int i = 0; i < 4; i++) {
+			shadowPosition[i].y++;
+		}
+	}
+	for (int i = 0; i < 4; i++) {
+		shadowPosition[i].y--;
+		if (board[shadowPosition[i].y][shadowPosition[i].x] == 0) {
+			ScreenPoint p = { shadowPosition[i].x * 2, shadowPosition[i].y };
+			renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 162;
+			renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 174;
+		}
+	}
 	// render hold
-	renderBuffer[ScreenPointToPosition(holdPosition)+0] = 'H';
-	renderBuffer[ScreenPointToPosition(holdPosition)+2] = 'O';
-	renderBuffer[ScreenPointToPosition(holdPosition)+4] = 'L';
-	renderBuffer[ScreenPointToPosition(holdPosition)+6] = 'D';
+	memcpy(renderBuffer + ScreenPointToPosition(holdPosition), "¢Ö¢Ý¢Ú¢Ò", sizeof(char) * 8);
 	if (holdBlock != -1) {
 		int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
 		for (int i = 0; i < 4; i++) {
@@ -227,10 +259,7 @@ void render() {
 		}
 	}
 	// render next
-	renderBuffer[ScreenPointToPosition(nextPosition) + 0] = 'N';
-	renderBuffer[ScreenPointToPosition(nextPosition) + 2] = 'E';
-	renderBuffer[ScreenPointToPosition(nextPosition) + 4] = 'X';
-	renderBuffer[ScreenPointToPosition(nextPosition) + 6] = 'T';
+	memcpy(renderBuffer + ScreenPointToPosition(nextPosition), "¢Ü¢Ó¢æ¢â", sizeof(char) * 8);
 	int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
 	for (int blockI = 0; blockI < 5; blockI++) {
 		for (int i = 0; i < 4; i++) {
@@ -241,10 +270,7 @@ void render() {
 		iconPosition += RANDER_WIDTH * 3;
 	}
 	// render score
-	renderBuffer[ScreenPointToPosition(scorePosition) + 0] = 'L';
-	renderBuffer[ScreenPointToPosition(scorePosition) + 2] = 'I';
-	renderBuffer[ScreenPointToPosition(scorePosition) + 4] = 'N';
-	renderBuffer[ScreenPointToPosition(scorePosition) + 6] = 'E';
+	memcpy(renderBuffer + ScreenPointToPosition(scorePosition), "¢Ú¢×¢Ü¢Ó", sizeof(char) * 8);
 	char scoreBuffer[10];
 	itoa(score, scoreBuffer, 10);
 	memcpy(renderBuffer + (ScreenPointToPosition(scorePosition) + RANDER_WIDTH * 2), scoreBuffer, sizeof(char) * strlen(scoreBuffer));
@@ -315,6 +341,7 @@ void RotateBlock(BlockInfo* block, int direction) {
 			block->position.y += rotateConstraint[block->type][block->rotation][direction].data[i].y;
 			block->rotation = rotation;
 			UpdateBlockData(block);
+			break;
 		}
 	}
 }
@@ -468,7 +495,7 @@ int main(int argc, char* argv[]) {
 		double currentTime = ((double)clock()) / CLOCKS_PER_SEC;
 		double biasTime = (1.0 / FPS) - (currentTime - accumulationTime);
 		while (kbhit()) {
-			char key = getch();
+			unsigned char key = getch();
 			if (key == 27) {
 				ResetData();
 			}
@@ -486,13 +513,15 @@ int main(int argc, char* argv[]) {
 				case ' ':
 					FallBlock(&block);
 					break;
-				case -32:
+				case 224:
 					key = getch();
 					if (key == 72) {
 						RotateBlock(&block, 1);
 					}
 					else if (key == 80) {
-						DropBlock(&block);
+						if (!DropBlock(&block)) {
+							lastDropTime = currentTime;
+						}
 					}
 					else if (key == 75) {
 						Point direction = { -1, 0 };
@@ -519,7 +548,6 @@ int main(int argc, char* argv[]) {
 		if (!gameOver && (currentTime - lastDropTime > DROP_TIME)) {
 			if (DropBlock(&block)) {
 				block = NextBlock();
-				printf("%lf\n", currentTime - lastDropTime);
 			}
 			lastDropTime = currentTime;
 			dirty = 1;
