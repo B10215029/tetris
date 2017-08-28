@@ -5,8 +5,8 @@
 #include <time.h>
 #include <string.h>
 
-#define FPS 60
-#define RANDER_WIDTH 100
+#define FPS 30
+#define RANDER_WIDTH 120
 #define RENDER_HEIGHT 30
 #define BOARD_WIDTH 10
 #define BOARD_HEIGHT 20
@@ -27,18 +27,38 @@ typedef struct {
 	Point position;
 	int rotation;
 	Point data[4];
-} BlockInfo;
+} Block;
 
 typedef struct {
 	int size;
 	Point *data;
 } RotateConstraint;
 
+typedef struct {
+	Block block;
+	Point blockInitPosition;
+	double lastDropTime;
+} PlayerData;
+
+typedef struct {
+	char board[BOARD_HEIGHT][BOARD_WIDTH];
+	int blockQueue[7 * 2];
+	int blockQueueIndex;
+	int holdBlock;
+	int score;
+	int gameOver;
+	PlayerData* players;
+	int playerCount;
+} GameData;
+
 const ScreenPoint boardPosition = { 12, 3 };
 const ScreenPoint holdPosition = { 2, 3 };
-const ScreenPoint nextPosition = { 34, 3 };
+const ScreenPoint nextPosition = { 94, 3 };
 const ScreenPoint scorePosition = { 2, 20 };
-const Point blockInitPosition = { 4, 0 };
+const Point UP = { 0, -1 };
+const Point DOWN = { 0, 1 };
+const Point LEFT = { -1, 0 };
+const Point RIGHT = { 1, 0 };
 const Point BlockData[7][4][4] = {
 	{// 0
 		// []()[][]
@@ -191,22 +211,18 @@ RotateConstraint rotateConstraint[7][4][2] = {
 	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } },
 	{ { { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } },{ { 1 },{ 1 } } }
 };
-void InitRotateConstraint() {
-	int dataPointer = 0;
-	for (int i = 0; i < 7 * 4 * 2; i++) {
-		rotateConstraint[0][0][i].data = rawRotateConstraintData + dataPointer;
-		dataPointer += rotateConstraint[0][0][i].size;
-	}
-}
+const Point blockInitializePositions[] = { {4, 0},{ 14, 0 },{ 24, 0 },{ 34, 0 } };
 
-char* renderBuffer;
-char board[BOARD_HEIGHT][BOARD_WIDTH];
-int blockQueue[7 * 2];
-int blockQueueIndex;
-BlockInfo block;
-int holdBlock;
-int score = 0;
-int gameOver = 0;
+char renderBuffer[RANDER_WIDTH * RENDER_HEIGHT];
+GameData game;
+
+//const Point blockInitPosition = { 4, 0 };
+//Block block;
+//double lastDropTime;
+//
+//Block block2;
+//const Point blockInitPosition2 = { 34, 0 };
+//double lastDropTime2;
 
 inline int ScreenPointToPosition(ScreenPoint point) {
 	return point.x + point.y * RANDER_WIDTH;
@@ -223,7 +239,7 @@ void render() {
 	for (int x = 0; x < BOARD_WIDTH; x++) {
 		for (int y = 0; y < BOARD_HEIGHT; y++) {
 			ScreenPoint p = { x * 2, y };
-			if (board[y][x] == 0) {
+			if (game.board[y][x] == 0) {
 				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
 				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 188;
 			}
@@ -233,27 +249,29 @@ void render() {
 			}
 		}
 	}
-	Point shadowPosition[4];
-	memcpy(shadowPosition, block.data, sizeof(shadowPosition));
-	while (PositionCheck(block.data, shadowPosition)) {
-		for (int i = 0; i < 4; i++) {
-			shadowPosition[i].y++;
+	for (int i = 0; i < game.playerCount; i++) {
+		Point shadowPosition[4];
+		memcpy(shadowPosition, game.players[i].block.data, sizeof(shadowPosition));
+		while (PositionCheck(shadowPosition, game.players[i].block.data)) {
+			for (int i = 0; i < 4; i++) {
+				shadowPosition[i].y++;
+			}
 		}
-	}
-	for (int i = 0; i < 4; i++) {
-		shadowPosition[i].y--;
-		if (board[shadowPosition[i].y][shadowPosition[i].x] == 0) {
-			ScreenPoint p = { shadowPosition[i].x * 2, shadowPosition[i].y };
-			renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 162;
-			renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 174;
+		for (int i = 0; i < 4; i++) {
+			shadowPosition[i].y--;
+			if (shadowPosition[i].y >= 0 && game.board[shadowPosition[i].y][shadowPosition[i].x] == 0) {
+				ScreenPoint p = { shadowPosition[i].x * 2, shadowPosition[i].y };
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 162;
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 174;
+			}
 		}
 	}
 	// render hold
 	memcpy(renderBuffer + ScreenPointToPosition(holdPosition), "¢Ö¢Ý¢Ú¢Ò", sizeof(char) * 8);
-	if (holdBlock != -1) {
+	if (game.holdBlock != -1) {
 		int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
 		for (int i = 0; i < 4; i++) {
-			ScreenPoint p = { BlockData[holdBlock][0][i].x * 2, BlockData[holdBlock][0][i].y };
+			ScreenPoint p = { BlockData[game.holdBlock][0][i].x * 2, BlockData[game.holdBlock][0][i].y };
 			renderBuffer[ScreenPointToPosition(holdPosition) + iconPosition + ScreenPointToPosition(p)] = -95;
 			renderBuffer[ScreenPointToPosition(holdPosition) + iconPosition + ScreenPointToPosition(p) + 1] = -67;
 		}
@@ -263,7 +281,7 @@ void render() {
 	int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
 	for (int blockI = 0; blockI < 5; blockI++) {
 		for (int i = 0; i < 4; i++) {
-			ScreenPoint p = { BlockData[blockQueue[blockQueueIndex + blockI]][0][i].x * 2, BlockData[blockQueue[blockQueueIndex + blockI]][0][i].y };
+			ScreenPoint p = { BlockData[game.blockQueue[game.blockQueueIndex + blockI]][0][i].x * 2, BlockData[game.blockQueue[game.blockQueueIndex + blockI]][0][i].y };
 			renderBuffer[ScreenPointToPosition(nextPosition) + iconPosition + ScreenPointToPosition(p)] = -95;
 			renderBuffer[ScreenPointToPosition(nextPosition) + iconPosition + ScreenPointToPosition(p) + 1] = -67;
 		}
@@ -272,63 +290,80 @@ void render() {
 	// render score
 	memcpy(renderBuffer + ScreenPointToPosition(scorePosition), "¢Ú¢×¢Ü¢Ó", sizeof(char) * 8);
 	char scoreBuffer[10];
-	itoa(score, scoreBuffer, 10);
+	itoa(game.score, scoreBuffer, 10);
 	memcpy(renderBuffer + (ScreenPointToPosition(scorePosition) + RANDER_WIDTH * 2), scoreBuffer, sizeof(char) * strlen(scoreBuffer));
 
-	strcpy(renderBuffer + RANDER_WIDTH * (RENDER_HEIGHT - 1), gameOver ? "Game Over" : "");
+	strcpy(renderBuffer + RANDER_WIDTH * (RENDER_HEIGHT - 1), game.gameOver ? "Game Over" : "");
 	// print to screen
 	puts(renderBuffer);
 }
 
-void UpdateBlockData(BlockInfo* block) {
+Point PointAdd(Point a, Point b) {
+	Point r = { a.x + b.x, a.y + b.y };
+	return r;
+}
+
+void RemoveFromBoard(Block* block) {
 	for (int i = 0; i < 4; i++) {
 		if (block->data[i].y >= 0) {
-			board[block->data[i].y][block->data[i].x] = 0;
-		}
-	}
-	memcpy(block->data, BlockData[block->type][block->rotation], sizeof(block->data));
-	for (int i = 0; i < 4; i++) {
-		block->data[i].x += block->position.x;
-		block->data[i].y += block->position.y;
-	}
-	//BlockData(block);
-	for (int i = 0; i < 4; i++) {
-		if (block->data[i].y >= 0) {
-			board[block->data[i].y][block->data[i].x] = 1;
+			game.board[block->data[i].y][block->data[i].x] = 0;
 		}
 	}
 }
 
-inline int IsInBound(Point point) {
-	return point.x >= 0 && point.x < BOARD_WIDTH && point.y < BOARD_HEIGHT;
+void AddToBoard(Block* block) {
+	for (int i = 0; i < 4; i++) {
+		if (block->data[i].y >= 0) {
+			game.board[block->data[i].y][block->data[i].x] = 1;
+		}
+	}
 }
 
-int PositionCheck(Point *oldPosition, Point *newPosition) {
+void UpdateBlockData(Block* block) {
+	RemoveFromBoard(block);
 	for (int i = 0; i < 4; i++) {
-		if (!IsInBound(newPosition[i])) {
+		block->data[i] = PointAdd(BlockData[block->type][block->rotation][i], block->position);
+	}
+	AddToBoard(block);
+}
+
+inline int IsInBound(Point position) {
+	return position.x >= 0 && position.x < BOARD_WIDTH && position.y < BOARD_HEIGHT;
+}
+
+inline int IsEmpty(Point position) {
+	return position.y < 0 || game.board[position.y][position.x] == 0;
+}
+
+inline int IsInclude(Point position, Point data[4]) {
+	for (int i = 0; i < 4; i++) {
+		if (position.x == data[i].x && position.y == data[i].y) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+inline int IsOverlap(Point position) {
+	for (int i = 0; i < game.playerCount; i++) {
+		if (IsOverlap(position, game.players[i].block.data)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int PositionCheck(Point *newPosition, Point *oldPosition) {
+	for (int i = 0; i < 4; i++) {
+		if (!IsInBound(newPosition[i]) || !IsEmpty(newPosition[i]) && oldPosition != NULL && !IsInclude(newPosition[i], oldPosition)) {
 			return 0;
-		}
-		else if (newPosition[i].y < 0 || board[newPosition[i].y][newPosition[i].x] == 0) {
-			continue;
-		}
-		else {
-			int overlapSelf = 0;
-			for (int otherData = 0; otherData < 4; otherData++) {
-				if (newPosition[i].x == oldPosition[otherData].x && newPosition[i].y == oldPosition[otherData].y) {
-					overlapSelf = 1;
-					break;
-				}
-			}
-			if (!overlapSelf) {
-				return 0;
-			}
 		}
 	}
 	return 1;
 }
 
 // 0°f®É°w 1¶¶®É°w
-void RotateBlock(BlockInfo* block, int direction) {
+void RotateBlock(Block* block, int direction) {
 	int rotation = (block->rotation + (direction ? 1 : 3)) % 4;
 	for (int i = 0; i < rotateConstraint[block->type][block->rotation][direction].size; i++) {
 		Point newPosition[4];
@@ -336,7 +371,7 @@ void RotateBlock(BlockInfo* block, int direction) {
 			newPosition[posi].x = BlockData[block->type][rotation][posi].x + block->position.x + rotateConstraint[block->type][block->rotation][direction].data[i].x;
 			newPosition[posi].y = BlockData[block->type][rotation][posi].y + block->position.y + rotateConstraint[block->type][block->rotation][direction].data[i].y;
 		}
-		if (PositionCheck(block->data, newPosition)) {
+		if (PositionCheck(newPosition, block->data)) {
 			block->position.x += rotateConstraint[block->type][block->rotation][direction].data[i].x;
 			block->position.y += rotateConstraint[block->type][block->rotation][direction].data[i].y;
 			block->rotation = rotation;
@@ -346,151 +381,139 @@ void RotateBlock(BlockInfo* block, int direction) {
 	}
 }
 
-int MoveCheck(BlockInfo* block, Point vector) {
+int MoveBlock(Block* block, Point direction) {
+	Point newData[4];
 	for (int i = 0; i < 4; i++) {
-		Point newPosition = { block->data[i].x + vector.x , block->data[i].y + vector.y };
-		if (!IsInBound(newPosition)) {
-			return 0;
-		}
-		else if (newPosition.y < 0 || board[newPosition.y][newPosition.x] == 0) {
-			continue;
-		}
-		else {
-			int overlapSelf = 0;
-			for (int otherData = 0; otherData < 4; otherData++) {
-				if (newPosition.x == block->data[otherData].x && newPosition.y == block->data[otherData].y) {
-					overlapSelf = 1;
-					break;
-				}
-			}
-			if (!overlapSelf) {
-				return 0;
-			}
-		}
+		newData[i] = PointAdd(block->data[i], direction);
 	}
+	if (!PositionCheck(newData, block->data)) {
+		return 0;
+	}
+	block->position = PointAdd(block->position, direction);
+	UpdateBlockData(block);
 	return 1;
 }
 
-int DropBlock(BlockInfo* block) {
-	Point direction = { 0, 1 };
-	if (MoveCheck(block, direction)) {
-		block->position.y++;
-		UpdateBlockData(block);
-		return 0;
-	}
-	else {
-		return 1;
-	}
-}
-
-BlockInfo CreateBlock(int type) {
-	BlockInfo newBlock = {
+Block CreateBlock(int type, Point position) {
+	Block newBlock = {
 		.type = type,
-		.position = blockInitPosition,
+		.position = position,
 		.rotation = 0,
 	};
 	memcpy(newBlock.data, BlockData[newBlock.type][newBlock.rotation], sizeof(newBlock.data));
 	for (int i = 0; i < 4; i++) {
-		newBlock.data[i].x += newBlock.position.x;
-		newBlock.data[i].y += newBlock.position.y;
-	}
-	//BlockData(&newBlock);
-	for (int i = 0; i < 4; i++) {
-		if (board[newBlock.data[i].y][newBlock.data[i].x] != 0) {
-			gameOver = 1;
+		if (!IsEmpty(newBlock.data[i] = PointAdd(BlockData[newBlock.type][newBlock.rotation][i], newBlock.position))) {
+			game.gameOver = 1;
 		}
 	}
 	UpdateBlockData(&newBlock);
 	return newBlock;
 }
 
-BlockInfo NextBlock() {
-	static const char fillRow[10] = { 1, 1 , 1 , 1 , 1 , 1 , 1 , 1 , 1 , 1 };
-	if (memcmp(board[0], fillRow, sizeof(char) * BOARD_WIDTH) == 0) {
-		memset(board[0], 0, sizeof(char) * BOARD_WIDTH);
+Block NextBlock(int playerIndex) {
+	char fillRow[BOARD_WIDTH];
+	memset(fillRow, 1, sizeof(char) * BOARD_WIDTH);
+	if (memcmp(game.board[0], fillRow, sizeof(char) * BOARD_WIDTH) == 0) {
+		memset(game.board[0], 0, sizeof(char) * BOARD_WIDTH);
 	}
 	for (int i = 1; i < BOARD_HEIGHT; i++) {
-		if (memcmp(board[i], fillRow, sizeof(char) * BOARD_WIDTH) == 0) {
+		if (memcmp(game.board[i], fillRow, sizeof(char) * BOARD_WIDTH) == 0) {
 			for (int c = i; c > 0; c--) {
-				memcpy(board[c], board[c - 1], sizeof(char) * BOARD_WIDTH);
+				memcpy(game.board[c], game.board[c - 1], sizeof(char) * BOARD_WIDTH);
 			}
-			score++;
+			for (int i = 0; i < game.playerCount; i++) {
+				for (int j = 0; j < 4; j++) {
+					game.players[i].block.data[j].y++;
+				}
+			}
+			game.score++;
 		}
 	}
-	return CreateBlock(PopBlockQueue());
-}
-
-void FallBlock(BlockInfo* block) {
-	while (!DropBlock(block));
-	BlockInfo nextBlock = NextBlock();
-	memcpy(block, &nextBlock, sizeof(BlockInfo));
+	return CreateBlock(PopBlockQueue(), game.players[playerIndex].blockInitPosition);
 }
 
 int PopBlockQueue() {
-	int nextBlock = blockQueue[blockQueueIndex++];
-	if (blockQueueIndex == 7) {
-		memcpy(blockQueue, blockQueue + 7, sizeof(int) * 7);
+	int nextBlock = game.blockQueue[game.blockQueueIndex++];
+	if (game.blockQueueIndex == 7) {
+		memcpy(game.blockQueue, game.blockQueue + 7, sizeof(int) * 7);
 		// shuffle blockQueue last 7 elements
 		for (int i = 0; i < 7; i++) {
 			int  j = i + rand() / (RAND_MAX / (7 - i) + 1);
-			int temp = blockQueue[j];
-			blockQueue[j] = blockQueue[i];
-			blockQueue[i] = temp;
+			int temp = game.blockQueue[j];
+			game.blockQueue[j] = game.blockQueue[i];
+			game.blockQueue[i] = temp;
 		}
-		blockQueueIndex = 0;
+		game.blockQueueIndex = 0;
 	}
 	return nextBlock;
 }
 
-BlockInfo HoldBlock(BlockInfo* block) {
-	for (int i = 0; i < 4; i++) {
-		if (block->data[i].y >= 0) {
-			board[block->data[i].y][block->data[i].x] = 0;
-		}
-	}
-	if (holdBlock == -1) {
-		holdBlock = block->type;
-		return NextBlock();
+void FallBlock(int playerIndex) {
+	Block* block = &game.players[playerIndex].block;
+	while (MoveBlock(block, DOWN));
+	Block nextBlock = NextBlock(playerIndex);
+	memcpy(block, &nextBlock, sizeof(Block));
+}
+
+Block HoldBlock(int playerIndex) {
+	Block* block = &game.players[playerIndex].block;
+	RemoveFromBoard(block);
+	if (game.holdBlock == -1) {
+		game.holdBlock = block->type;
+		return NextBlock(playerIndex);
 	}
 	else {
-		BlockInfo newBlock = CreateBlock(holdBlock);
-		holdBlock = block->type;
+		Block newBlock = CreateBlock(game.holdBlock, game.players[playerIndex].blockInitPosition);
+		game.holdBlock = block->type;
 		return newBlock;
 	}
 }
 
 void ResetData() {
 	// clear board
-	memset(board, 0, BOARD_WIDTH * BOARD_HEIGHT);
+	memset(game.board, 0, BOARD_WIDTH * BOARD_HEIGHT);
 	// initialize blockQueue
 	for (int i = 0; i < 7; i++) {
-		blockQueue[i] = blockQueue[i + 7] = i;
+		game.blockQueue[i] = game.blockQueue[i + 7] = i;
 	}
 	for (int i = 0; i < 7; i++) {
 		int  j = i + rand() / (RAND_MAX / (7 - i) + 1);
-		int temp = blockQueue[j];
-		blockQueue[j] = blockQueue[i];
-		blockQueue[i] = temp;
+		int temp = game.blockQueue[j];
+		game.blockQueue[j] = game.blockQueue[i];
+		game.blockQueue[i] = temp;
 		j = i + rand() / (RAND_MAX / (7 - i) + 1);
-		temp = blockQueue[j + 7];
-		blockQueue[j + 7] = blockQueue[i + 7];
-		blockQueue[i + 7] = temp;
+		temp = game.blockQueue[j + 7];
+		game.blockQueue[j + 7] = game.blockQueue[i + 7];
+		game.blockQueue[i + 7] = temp;
 	}
-	blockQueueIndex = 0;
-	// initialize current block
-	block = NextBlock();
-	holdBlock = -1;
-	score = 0;
-	gameOver = 0;
+	game.blockQueueIndex = 0;
+	game.holdBlock = -1;
+	game.score = 0;
+	game.gameOver = 0;
+	game.players = malloc(sizeof(PlayerData) * game.playerCount);
+	for (int i = 0; i < game.playerCount; i++) {
+		game.players[i].blockInitPosition = blockInitializePositions[i];
+		game.players[i].lastDropTime = ((double)clock()) / CLOCKS_PER_SEC;
+		game.players[i].block = NextBlock(i);
+	}
+}
+
+void InitRotateConstraint() {
+	int dataPointer = 0;
+	for (int i = 0; i < 7 * 4 * 2; i++) {
+		rotateConstraint[0][0][i].data = rawRotateConstraintData + dataPointer;
+		dataPointer += rotateConstraint[0][0][i].size;
+	}
 }
 
 int main(int argc, char* argv[]) {
-	renderBuffer = malloc(sizeof(char) * RANDER_WIDTH * RENDER_HEIGHT);
+	//renderBuffer = malloc(sizeof(char) * RANDER_WIDTH * RENDER_HEIGHT);
+	double accumulationTime = ((double)clock()) / CLOCKS_PER_SEC;
+	game.playerCount = 1;
+	int redraw = 1;
+
 	InitRotateConstraint();
 	ResetData();
-	double lastDropTime = ((double)clock()) / CLOCKS_PER_SEC;
-	double accumulationTime = ((double)clock()) / CLOCKS_PER_SEC;
-	int dirty = 1;
 	while (1) {
 		double currentTime = ((double)clock()) / CLOCKS_PER_SEC;
 		double biasTime = (1.0 / FPS) - (currentTime - accumulationTime);
@@ -499,69 +522,62 @@ int main(int argc, char* argv[]) {
 			if (key == 27) {
 				ResetData();
 			}
-			else if (!gameOver) {
+			else if (!game.gameOver) {
 				switch (key) {
 				case 'z':
-					RotateBlock(&block, 0);
+					RotateBlock(&game.players[0].block, 0);
 					break;
 				case 'x':
-					RotateBlock(&block, 1);
+					RotateBlock(&game.players[0].block, 1);
 					break;
 				case 'c':
-					block = HoldBlock(&block);
+					game.players[0].block = HoldBlock(0);
 					break;
 				case ' ':
-					FallBlock(&block);
+					FallBlock(0);
+					game.players[0].lastDropTime = currentTime;
 					break;
 				case 224:
 					key = getch();
 					if (key == 72) {
-						RotateBlock(&block, 1);
+						RotateBlock(&game.players[0].block, 1);
 					}
 					else if (key == 80) {
-						if (!DropBlock(&block)) {
-							lastDropTime = currentTime;
+						if (MoveBlock(&game.players[0].block, DOWN)) {
+							game.players[0].lastDropTime = currentTime;
 						}
 					}
 					else if (key == 75) {
-						Point direction = { -1, 0 };
-						if (MoveCheck(&block, direction)) {
-							block.position.x--;
-							UpdateBlockData(&block);
-						}
+						MoveBlock(&game.players[0].block, LEFT);
 					}
 					else if (key == 77) {
-						Point direction = { 1, 0 };
-						if (MoveCheck(&block, direction)) {
-							block.position.x++;
-							UpdateBlockData(&block);
-						}
+						MoveBlock(&game.players[0].block, RIGHT);
 					}
 					break;
 				default:
 					break;
 				}
 			}
-			dirty = 1;
+			redraw = 1;
 		}
-
-		if (!gameOver && (currentTime - lastDropTime > DROP_TIME)) {
-			if (DropBlock(&block)) {
-				block = NextBlock();
+		for (int i = 0; i < game.playerCount; i++) {
+			if (!game.gameOver && (currentTime - game.players[i].lastDropTime > DROP_TIME)) {
+				if (!MoveBlock(&game.players[i].block, DOWN)) {
+					game.players[i].block = NextBlock(i);
+				}
+				game.players[i].lastDropTime = currentTime;
+				redraw = 1;
 			}
-			lastDropTime = currentTime;
-			dirty = 1;
 		}
-		if (dirty) {
+		if (redraw) {
 			render();
-			dirty = 0;
+			redraw = 0;
 		}
 		accumulationTime = currentTime + biasTime;
 		double sleepTime = (1.0 / FPS) + biasTime;
 		sleepTime = sleepTime > 0 ? sleepTime : 0;
 		_sleep(sleepTime * 1000);
 	}
-	free(renderBuffer);
-	system("pause");
+	//free(renderBuffer);
 	return 0;
 }
