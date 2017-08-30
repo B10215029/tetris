@@ -4,6 +4,7 @@
 #include <conio.h>
 #include <time.h>
 #include <string.h>
+#include <Windows.h>
 
 #define FPS 30
 #define RANDER_WIDTH 120
@@ -46,6 +47,7 @@ typedef struct {
 	int blockQueueIndex;
 	int holdBlock;
 	int bomb;
+	int ko;
 	int score;
 	int gameOver;
 	PlayerData* players;
@@ -237,12 +239,22 @@ void render() {
 		renderBuffer[RANDER_WIDTH * i + RANDER_WIDTH - 1] = '\n';
 	}
 	// render board
+	for (int i = 0; i < BOARD_HEIGHT; i++) {
+		renderBuffer[ScreenPointToPosition(boardPosition) + i * RANDER_WIDTH - 2] = 161;
+		renderBuffer[ScreenPointToPosition(boardPosition) + i * RANDER_WIDTH - 2 + 1] = 188;
+		renderBuffer[ScreenPointToPosition(boardPosition) + i * RANDER_WIDTH + BOARD_WIDTH * 2] = 161;
+		renderBuffer[ScreenPointToPosition(boardPosition) + i * RANDER_WIDTH + BOARD_WIDTH * 2 + 1] = 188;
+	}
+	for (int i = -1; i <= BOARD_WIDTH; i++) {
+		renderBuffer[ScreenPointToPosition(boardPosition) + BOARD_HEIGHT * RANDER_WIDTH + i * 2] = 161;
+		renderBuffer[ScreenPointToPosition(boardPosition) + BOARD_HEIGHT * RANDER_WIDTH + i * 2 + 1] = 188;
+	}
 	for (int x = 0; x < BOARD_WIDTH; x++) {
 		for (int y = 0; y < BOARD_HEIGHT; y++) {
 			ScreenPoint p = { x * 2, y };
 			if (game.board[y][x] == 0) {
-				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
-				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 188;
+				//renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
+				//renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 188;
 			}
 			else if (game.board[y][x] == 1) {
 				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
@@ -445,6 +457,7 @@ Block NextBlock(int playerIndex) {
 				}
 			}
 			game.score++;
+			putch('\a');
 		}
 	}
 	while (game.bomb > 0) {
@@ -532,7 +545,125 @@ void InitRotateConstraint() {
 	}
 }
 
+DWORD WINAPI BGM(void* data) {
+	while (1) {
+		Beep(1320, 500);
+		Beep(990, 250);
+		Beep(1056, 250);
+		Beep(1188, 500);
+		Beep(1056, 250);
+		Beep(990, 250);
+		Beep(880, 500);
+		Beep(880, 250);
+		Beep(1056, 250);
+		Beep(1320, 500);
+		Beep(1188, 250);
+		Beep(1056, 250);
+		Beep(990, 750);
+		Beep(1056, 250);
+		Beep(1188, 500);
+		Beep(1320, 500);
+		Beep(1056, 500);
+		Beep(880, 500);
+		Beep(880, 500);
+		Beep(0, 250);
+		Beep(1188, 500);
+		Beep(1408, 250);
+		Beep(1760, 500);
+		Beep(1584, 250);
+		Beep(1408, 250);
+		Beep(1320, 750);
+		Beep(1056, 250);
+		Beep(1320, 500);
+		Beep(1188, 250);
+		Beep(1056, 250);
+		Beep(990, 500);
+		Beep(990, 250);
+		Beep(1056, 250);
+		Beep(1188, 500);
+		Beep(1320, 500);
+		Beep(1056, 500);
+		Beep(880, 500);
+		Beep(880, 500);
+		Beep(0, 500);
+		Beep(1320, 500);
+		Beep(990, 250);
+		Beep(1056, 250);
+		Beep(1188, 500);
+		Beep(1056, 250);
+		Beep(990, 250);
+		Beep(880, 500);
+		Beep(880, 250);
+		Beep(1056, 250);
+		Beep(1320, 500);
+		Beep(1188, 250);
+		Beep(1056, 250);
+		Beep(990, 750);
+		Beep(1056, 250);
+		Beep(1188, 500);
+		Beep(1320, 500);
+		Beep(1056, 500);
+		Beep(880, 500);
+		Beep(880, 500);
+		Beep(0, 250);
+		Beep(1188, 500);
+		Beep(1408, 250);
+		Beep(1760, 500);
+		Beep(1584, 250);
+		Beep(1408, 250);
+		Beep(1320, 750);
+		Beep(1056, 250);
+		Beep(1320, 500);
+		Beep(1188, 250);
+		Beep(1056, 250);
+		Beep(990, 500);
+		Beep(990, 250);
+		Beep(1056, 250);
+		Beep(1188, 500);
+		Beep(1320, 500);
+		Beep(1056, 500);
+		Beep(880, 500);
+		Beep(880, 500);
+		Beep(0, 500);
+		Beep(660, 1000);
+		Beep(528, 1000);
+		Beep(594, 1000);
+		Beep(495, 1000);
+		Beep(528, 1000);
+		Beep(440, 1000);
+		Beep(419, 1000);
+		Beep(495, 1000);
+		Beep(660, 1000);
+		Beep(528, 1000);
+		Beep(594, 1000);
+		Beep(495, 1000);
+		Beep(528, 500);
+		Beep(660, 500);
+		Beep(880, 1000);
+		Beep(838, 2000);
+		Beep(660, 1000);
+		Beep(528, 1000);
+		Beep(594, 1000);
+		Beep(495, 1000);
+		Beep(528, 1000);
+		Beep(440, 1000);
+		Beep(419, 1000);
+		Beep(495, 1000);
+		Beep(660, 1000);
+		Beep(528, 1000);
+		Beep(594, 1000);
+		Beep(495, 1000);
+		Beep(528, 500);
+		Beep(660, 500);
+		Beep(880, 1000);
+		Beep(838, 2000);
+		Beep(0, 5000);
+	}
+	return 0;
+}
+
 int main(int argc, char* argv[]) {
+	HANDLE thread = CreateThread(NULL, 0, BGM, NULL, 0, NULL);
 	//renderBuffer = malloc(sizeof(char) * RANDER_WIDTH * RENDER_HEIGHT);
 	double accumulationTime = ((double)clock()) / CLOCKS_PER_SEC;
 	game.playerCount = 1;
