@@ -45,6 +45,7 @@ typedef struct {
 	int blockQueue[7 * 2];
 	int blockQueueIndex;
 	int holdBlock;
+	int bomb;
 	int score;
 	int gameOver;
 	PlayerData* players;
@@ -243,9 +244,13 @@ void render() {
 				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
 				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 188;
 			}
-			else {
+			else if (game.board[y][x] == 1) {
 				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
 				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 189;
+			}
+			else if (game.board[y][x] == 2) {
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p)] = 161;
+				renderBuffer[ScreenPointToPosition(boardPosition) + ScreenPointToPosition(p) + 1] = 242;
 			}
 		}
 	}
@@ -353,6 +358,19 @@ inline int IsOverlap(Point position) {
 	return 0;
 }
 
+inline int TriggerBomb(Block* block) {
+	for (int i = 0; i < 4; i++) {
+		if ((block->data[i].y + 1) >= 0 && (block->data[i].y + 1) < BOARD_HEIGHT && game.board[block->data[i].y + 1][block->data[i].x] == 2) {
+			game.board[block->data[i].y + 1][block->data[i].x] = 1;
+			for (int j = block->data[i].y + 2; j < BOARD_HEIGHT; j++) {
+				if (game.board[j][block->data[i].x] == 2) {
+					game.board[j][block->data[i].x] = 1;
+				}
+			}
+		}
+	}
+}
+
 int PositionCheck(Point *newPosition, Point *oldPosition) {
 	for (int i = 0; i < 4; i++) {
 		if (!IsInBound(newPosition[i]) || !IsEmpty(newPosition[i]) && oldPosition != NULL && !IsInclude(newPosition[i], oldPosition)) {
@@ -429,6 +447,12 @@ Block NextBlock(int playerIndex) {
 			game.score++;
 		}
 	}
+	while (game.bomb > 0) {
+		memcpy(game.board[0], game.board[1], sizeof(char) * BOARD_WIDTH * (BOARD_HEIGHT - 1));
+		memcpy(game.board[BOARD_HEIGHT - 1], fillRow, sizeof(char) * BOARD_WIDTH);
+		game.board[BOARD_HEIGHT - 1][rand() / (RAND_MAX / BOARD_WIDTH)] = 2;
+		game.bomb--;
+	}
 	return CreateBlock(PopBlockQueue(), game.players[playerIndex].blockInitPosition);
 }
 
@@ -451,6 +475,7 @@ int PopBlockQueue() {
 void FallBlock(int playerIndex) {
 	Block* block = &game.players[playerIndex].block;
 	while (MoveBlock(block, DOWN));
+	TriggerBomb(block);
 	Block nextBlock = NextBlock(playerIndex);
 	memcpy(block, &nextBlock, sizeof(Block));
 }
@@ -488,6 +513,7 @@ void ResetData() {
 	}
 	game.blockQueueIndex = 0;
 	game.holdBlock = -1;
+	game.bomb = 0;
 	game.score = 0;
 	game.gameOver = 0;
 	game.players = malloc(sizeof(PlayerData) * game.playerCount);
@@ -524,6 +550,9 @@ int main(int argc, char* argv[]) {
 			}
 			else if (!game.gameOver) {
 				switch (key) {
+				case 'q':
+					game.bomb++;
+					break;
 				case 'z':
 					RotateBlock(&game.players[0].block, 0);
 					break;
@@ -563,6 +592,7 @@ int main(int argc, char* argv[]) {
 		for (int i = 0; i < game.playerCount; i++) {
 			if (!game.gameOver && (currentTime - game.players[i].lastDropTime > DROP_TIME)) {
 				if (!MoveBlock(&game.players[i].block, DOWN)) {
+					TriggerBomb(&game.players[i].block);
 					game.players[i].block = NextBlock(i);
 				}
 				game.players[i].lastDropTime = currentTime;
