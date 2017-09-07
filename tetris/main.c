@@ -12,6 +12,8 @@
 #define BOARD_WIDTH 10
 #define BOARD_HEIGHT 20
 #define DROP_TIME 1
+#define ScreenPointToPosition(point) (point.x + point.y * RANDER_WIDTH)
+#define PointAdd(a, b) ((Point){ a.x + b.x, a.y + b.y })
 
 typedef struct {
 	int x;
@@ -56,7 +58,7 @@ typedef struct {
 
 const ScreenPoint boardPosition = { 14, 3 };
 const ScreenPoint holdPosition = { 2, 3 };
-const ScreenPoint nextPosition = { 38, 3 };
+const ScreenPoint nextPosition = { 88, 3 };
 const ScreenPoint scorePosition = { 2, 20 };
 const Point UP = { 0, -1 };
 const Point DOWN = { 0, 1 };
@@ -169,7 +171,7 @@ const Point BlockData[7][4][4] = {
 		{ {  0, -1 },{ 0,  0 },{ 0,  1 },{ -1, -1 } }
 	}
 };
-const Point rawRotateConstraintData[] = {
+Point rawRotateConstraintData[] = {
 	{ 0, 0 },/**/{ 0, 0 },
 	{ 0, 0 },{ -1, 0 },{ -2, 0 },{ 1, 0 },/**/{ 0, 0 },{ -1, 0 },{ -2, 0 },{ 1, 0 },
 	{ 0, 0 },/**/{ 0, 0 },
@@ -216,12 +218,8 @@ RotateConstraint rotateConstraint[7][4][2] = {
 };
 const Point blockInitializePositions[] = { {4, 0},{ 14, 0 },{ 24, 0 },{ 34, 0 } };
 
-char renderBuffer[RANDER_WIDTH * RENDER_HEIGHT];
 GameData game;
-
-inline int ScreenPointToPosition(ScreenPoint point) {
-	return point.x + point.y * RANDER_WIDTH;
-}
+char renderBuffer[RANDER_WIDTH * RENDER_HEIGHT];
 
 void render() {
 	//system("cls");
@@ -278,7 +276,7 @@ void render() {
 	// render hold
 	memcpy(renderBuffer + ScreenPointToPosition(holdPosition), "¢Ö¢Ý¢Ú¢Ò", sizeof(char) * 8);
 	if (game.holdBlock != -1) {
-		int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
+		int iconPosition = 2 + 3 * RANDER_WIDTH;
 		for (int i = 0; i < 4; i++) {
 			ScreenPoint p = { BlockData[game.holdBlock][0][i].x * 2, BlockData[game.holdBlock][0][i].y };
 			renderBuffer[ScreenPointToPosition(holdPosition) + iconPosition + ScreenPointToPosition(p)] = -95;
@@ -287,7 +285,7 @@ void render() {
 	}
 	// render next
 	memcpy(renderBuffer + ScreenPointToPosition(nextPosition), "¢Ü¢Ó¢æ¢â", sizeof(char) * 8);
-	int iconPosition = ScreenPointToPosition((ScreenPoint) { 2, 3 });
+	int iconPosition = 2 + 3 * RANDER_WIDTH;
 	for (int blockI = 0; blockI < 5; blockI++) {
 		for (int i = 0; i < 4; i++) {
 			ScreenPoint p = { BlockData[game.blockQueue[game.blockQueueIndex + blockI]][0][i].x * 2, BlockData[game.blockQueue[game.blockQueueIndex + blockI]][0][i].y };
@@ -307,10 +305,10 @@ void render() {
 	puts(renderBuffer);
 }
 
-Point PointAdd(Point a, Point b) {
-	Point r = { a.x + b.x, a.y + b.y };
-	return r;
-}
+//Point PointAdd(Point a, Point b) {
+//	Point r = { a.x + b.x, a.y + b.y };
+//	return r;
+//}
 
 void RemoveFromBoard(Block* block) {
 	for (int i = 0; i < 4; i++) {
@@ -362,7 +360,7 @@ inline int IsOverlap(Point position) {
 	return 0;
 }
 
-inline int TriggerBomb(Block* block) {
+int TriggerBomb(Block* block) {
 	for (int i = 0; i < 4; i++) {
 		if ((block->data[i].y + 1) >= 0 && (block->data[i].y + 1) < BOARD_HEIGHT && game.board[block->data[i].y + 1][block->data[i].x] == 2) {
 			game.board[block->data[i].y + 1][block->data[i].x] = 1;
@@ -443,9 +441,9 @@ Block NextBlock(int playerIndex) {
 			for (int c = i; c > 0; c--) {
 				memcpy(game.board[c], game.board[c - 1], sizeof(char) * BOARD_WIDTH);
 			}
-			for (int i = 0; i < game.playerCount; i++) {
+			for (int p = 0; p < game.playerCount; p++) {
 				for (int j = 0; j < 4; j++) {
-					game.players[i].block.data[j].y++;
+					game.players[p].block.data[j].y++;
 				}
 			}
 			game.score++;
@@ -657,6 +655,37 @@ int main(int argc, char* argv[]) {
 					else if (key == 77) {
 						MoveBlock(&game.players[0].block, RIGHT);
 					}
+					break;
+				default:
+					break;
+				}
+				switch (key) {
+				case 'u':
+					RotateBlock(&game.players[1].block, 0);
+					break;
+				case 'i':
+					RotateBlock(&game.players[1].block, 1);
+					break;
+				case 'o':
+					game.players[1].block = HoldBlock(1);
+					break;
+				case 'p':
+					FallBlock(1);
+					game.players[1].lastDropTime = currentTime;
+					break;
+				case 56:
+					RotateBlock(&game.players[1].block, 1);
+					break;
+				case 53:
+					if (MoveBlock(&game.players[1].block, DOWN)) {
+						game.players[1].lastDropTime = currentTime;
+					}
+					break;
+				case 52:
+					MoveBlock(&game.players[1].block, LEFT);
+					break;
+				case 54:
+					MoveBlock(&game.players[1].block, RIGHT);
 					break;
 				default:
 					break;
