@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "./tetris.h"
+#include "./tetrisNetwork.h"
 
 const Point UP = { 0, -1 };
 const Point DOWN = { 0, 1 };
@@ -302,7 +303,7 @@ Block CreateBlock(int type) {
 }
 
 Block NextBlock() {
-	char fillRow[BOARD_WIDTH];
+	char fillRow[BOARD_WIDTH], hasClean = 0;
 	memset(fillRow, 1, sizeof(char) * BOARD_WIDTH);
 	if (memcmp(currentGame->board[0], fillRow, sizeof(char) * BOARD_WIDTH) == 0) {
 		memset(currentGame->board[0], 0, sizeof(char) * BOARD_WIDTH);
@@ -313,9 +314,15 @@ Block NextBlock() {
 				memcpy(currentGame->board[c], currentGame->board[c - 1], sizeof(char) * BOARD_WIDTH);
 			}
 			currentGame->score++;
+			currentGame->combo++;
+			hasClean = 1;
+			if (currentGame->combo > 1) {
+				SendBomb();
+			}
 			putchar('\a');
 		}
 	}
+	currentGame->combo = hasClean ? currentGame->combo : 0;
 	while (currentGame->bomb > 0) {
 		memcpy(currentGame->board[0], currentGame->board[1], sizeof(char) * BOARD_WIDTH * (BOARD_HEIGHT - 1));
 		memcpy(currentGame->board[BOARD_HEIGHT - 1], fillRow, sizeof(char) * BOARD_WIDTH);
@@ -361,6 +368,7 @@ void ResetData(GameData* gameData) {
 	currentGame->holdBlock = -1;
 	currentGame->bomb = 0;
 	currentGame->score = 0;
+	currentGame->combo = 0;
 	currentGame->gameOver = 0;
 	currentGame->block = NextBlock();
 }

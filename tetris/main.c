@@ -6,6 +6,7 @@
 #include "tetris.h"
 #include "tetrisCLIRender.h"
 #include "audio.h"
+#include "tetrisNetwork.h"
 
 #define FPS 30
 #define DROP_TIME 1
@@ -14,10 +15,13 @@ int main(int argc, char* argv[]) {
 	// 初始化資料
 	double accumulationTime = ((double)clock()) / CLOCKS_PER_SEC;
 	double lastDropTime = accumulationTime;
-	GameData game;
+	GameData game, *opponentData = NULL;
 	int redraw = 1;
 	InitTetris();
 	ResetData(&game);
+	if (argc >= 2) {
+		opponentData = ConnectServer(&game, argv[1]);
+	}
 	// 播放BGM
 	PlayMusic();
 	while (1) {
@@ -32,7 +36,8 @@ int main(int argc, char* argv[]) {
 			else if (!game.gameOver) {
 				switch (key) {
 				case '`':
-					game.bomb++;
+					opponentData = CreateServer(&game);
+					ResetData(&game);
 					break;
 				case 'z':
 					RotateBlock(&game.block, 0);
@@ -78,8 +83,11 @@ int main(int argc, char* argv[]) {
 		}
 		// 更新畫面
 		if (redraw) {
-			Render(&game);
-			redraw = 0;
+			SendData(&game);
+		}
+		if (redraw || dataUpdate) {
+			Render2P(&game, opponentData);
+			redraw = dataUpdate = 0;
 		}
 		// 計算下次更新時間
 		double biasTime = (1.0 / FPS) - (currentTime - accumulationTime);

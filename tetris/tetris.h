@@ -27,6 +27,7 @@ typedef struct {
 	int holdBlock;
 	int bomb;
 	int ko;
+	int combo;
 	int score;
 	int gameOver;
 	Block block;

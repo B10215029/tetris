@@ -10,10 +10,6 @@ typedef struct {
 	int y;
 } ScreenPoint;
 
-extern const ScreenPoint boardPosition;
-extern const ScreenPoint holdPosition;
-extern const ScreenPoint nextPosition;
-extern const ScreenPoint scorePosition;
-
 // ­«Ã¸µe­±
 void Render(GameData* gameData);
+void Render2P(GameData* gameData1, GameData* gameData2);
