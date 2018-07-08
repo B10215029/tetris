@@ -37,7 +37,7 @@ DWORD WINAPI RecvData(void* data) {
 		}
 
 		if (strcmp("bomb", buf) == 0) {
-			myData->bomb++;
+			myData->bomb += buf[5];
 		}
 		else {
 			memcpy(&remoteData, buf, sizeof(GameData));
@@ -88,7 +88,6 @@ GameData* CreateServer(GameData* data) {
 }
 
 GameData* ConnectServer(GameData* data, char* serverIP) {
-	char message[DEFAULT_BUFLEN];
 	WSADATA wsa;
 
 	addr_len = sizeof(connect_addr);
@@ -135,10 +134,12 @@ void SendData(GameData* data) {
 	}
 }
 
-void SendBomb() {
+void SendBomb(int number) {
 	if (connectSocket == INVALID_SOCKET)
 		return;
-	if (sendto(connectSocket, "bomb", 5, 0, (struct sockaddr *) &connect_addr, addr_len) == SOCKET_ERROR) {
+	strcpy(buf, "bomb");
+	buf[5] = number;
+	if (sendto(connectSocket, buf, 6, 0, (struct sockaddr *) &connect_addr, addr_len) == SOCKET_ERROR) {
 		printf("sendto() failed with error code : %d", WSAGetLastError());
 		exit(EXIT_FAILURE);
 	}

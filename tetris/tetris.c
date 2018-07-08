@@ -316,13 +316,15 @@ Block NextBlock() {
 			currentGame->score++;
 			currentGame->combo++;
 			hasClean = 1;
-			if (currentGame->combo > 1) {
-				SendBomb();
-			}
 			putchar('\a');
 		}
 	}
-	currentGame->combo = hasClean ? currentGame->combo : 0;
+	if (!hasClean) {
+		if (currentGame->combo > 1) {
+			SendBomb(currentGame->combo - 1);
+		}
+		currentGame->combo = 0;
+	}
 	while (currentGame->bomb > 0) {
 		memcpy(currentGame->board[0], currentGame->board[1], sizeof(char) * BOARD_WIDTH * (BOARD_HEIGHT - 1));
 		memcpy(currentGame->board[BOARD_HEIGHT - 1], fillRow, sizeof(char) * BOARD_WIDTH);

@@ -3,5 +3,5 @@
 GameData* CreateServer(GameData* data);
 GameData* ConnectServer(GameData* data, char* serverIP);
 void SendData(GameData* data);
-void SendBomb();
+void SendBomb(int number);
 int dataUpdate;
