@@ -130,7 +130,7 @@ void RenderShadow(GameData* gameData, ScreenPoint position) {
 		if (shadowPosition[i].y >= 0 && gameData->board[shadowPosition[i].y][shadowPosition[i].x] == 0) {
 			ScreenPoint p = { shadowPosition[i].x * 2, shadowPosition[i].y };
 			renderBuffer[ScreenPointToPosition(position) + ScreenPointToPosition(p)] = 162;
-			renderBuffer[ScreenPointToPosition(position) + ScreenPointToPosition(p) + 1] = 174;
+			renderBuffer[ScreenPointToPosition(position) + ScreenPointToPosition(p) + 1] = 194;
 		}
 	}
 }
